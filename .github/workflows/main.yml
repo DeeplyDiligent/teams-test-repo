@@ -65,8 +65,6 @@ jobs:
             core.setOutput('unique_commenters', uniqueCommenters.join(', '));
             core.setOutput('last_five_comments', lastFiveComments.join(' | '));
             core.setOutput('reviewers', reviewers.join(', '));
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post Comment
         uses: actions/github-script@v6
