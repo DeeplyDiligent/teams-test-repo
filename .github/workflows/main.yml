@@ -14,15 +14,15 @@ jobs:
       - name: Get PR Details
         id: pr_details
         run: |
-          echo "pr_number=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.number')" >> $GITHUB_ENV
-          echo "created_at=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.created_at')" >> $GITHUB_ENV
-          echo "merged_at=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.merged_at')" >> $GITHUB_ENV
+          echo "pr_number=$(jq -r '.number' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "created_at=$(jq -r '.created_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "merged_at=$(jq -r '.merged_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
 
       - name: Calculate Metrics
         id: metrics
         run: |
-          lines_added=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.additions')
-          lines_deleted=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.deletions')
+          lines_added=$(jq -r '.additions' <<< "${{ github.event.pull_request }}")
+          lines_deleted=$(jq -r '.deletions' <<< "${{ github.event.pull_request }}")
           duration=$(( ($(date -d "${{ env.merged_at }}" +%s) - $(date -d "${{ env.created_at }}" +%s)) / 3600 ))
           days=$(( duration / 24 ))
           hours=$(( duration % 24 ))
@@ -31,6 +31,44 @@ jobs:
           echo "days=$days" >> $GITHUB_ENV
           echo "hours=$hours" >> $GITHUB_ENV
 
+      - name: Get Comments and Reviewers
+        id: comment_review_data
+        uses: actions/github-script@v6
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const prNumber = parseInt(process.env.pr_number);
+
+            // Fetch comments
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            // Fetch reviewers
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Get unique commenters and truncate last 5 comments
+            const uniqueCommenters = [...new Set(comments.data.map(comment => comment.user.login))];
+            const lastFiveComments = comments.data
+              .slice(-5)
+              .map(comment => comment.body.substring(0, 20) + (comment.body.length > 20 ? '...' : ''));
+
+            // Get reviewers
+            const reviewers = [...new Set(reviews.data.map(review => review.user.login))];
+
+            core.setOutput('comment_count', comments.data.length);
+            core.setOutput('unique_commenters', uniqueCommenters.join(', '));
+            core.setOutput('last_five_comments', lastFiveComments.join(' | '));
+            core.setOutput('reviewers', reviewers.join(', '));
+          
+            
       - name: Post Comment
         uses: actions/github-script@v6
         with:
@@ -40,6 +78,10 @@ jobs:
             const linesDeleted = process.env.lines_deleted;
             const days = process.env.days;
             const hours = process.env.hours;
+            const commentCount = core.getInput('comment_count');
+            const uniqueCommenters = core.getInput('unique_commenters');
+            const lastFiveComments = core.getInput('last_five_comments');
+            const reviewers = core.getInput('reviewers');
 
             const durationString = days > 0 
               ? `${days} day(s) and ${hours} hour(s)` 
@@ -52,6 +94,10 @@ jobs:
               - 📈 Lines Added: ${linesAdded}
               - 📉 Lines Deleted: ${linesDeleted}
               - 🕒 Time Open: ${durationString}
+              - 💬 Total Comments: ${commentCount}
+              - 🗣️ Commenters: ${uniqueCommenters}
+              - 📝 Last 5 Comments: ${lastFiveComments}
+              - 👀 Reviewers: ${reviewers}
             `;
 
             github.rest.issues.createComment({
