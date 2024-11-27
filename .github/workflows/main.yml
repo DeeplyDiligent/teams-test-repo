@@ -1,0 +1,62 @@
+name: Comment on PR Merge
+
+on:
+  pull_request_target:
+    types:
+      - closed
+
+jobs:
+  comment-on-merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR Details
+        id: pr_details
+        run: |
+          echo "pr_number=$(jq -r '.number' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "created_at=$(jq -r '.created_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "merged_at=$(jq -r '.merged_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+
+      - name: Calculate Metrics
+        id: metrics
+        run: |
+          lines_added=$(jq -r '.additions' <<< "${{ github.event.pull_request }}")
+          lines_deleted=$(jq -r '.deletions' <<< "${{ github.event.pull_request }}")
+          duration=$(( ($(date -d "${{ env.merged_at }}" +%s) - $(date -d "${{ env.created_at }}" +%s)) / 3600 ))
+          days=$(( duration / 24 ))
+          hours=$(( duration % 24 ))
+          echo "lines_added=$lines_added" >> $GITHUB_ENV
+          echo "lines_deleted=$lines_deleted" >> $GITHUB_ENV
+          echo "days=$days" >> $GITHUB_ENV
+          echo "hours=$hours" >> $GITHUB_ENV
+
+      - name: Post Comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = parseInt(process.env.pr_number);
+            const linesAdded = process.env.lines_added;
+            const linesDeleted = process.env.lines_deleted;
+            const days = process.env.days;
+            const hours = process.env.hours;
+
+            const durationString = days > 0 
+              ? `${days} day(s) and ${hours} hour(s)` 
+              : `${hours} hour(s)`;
+
+            const comment = `
+              🚀 PR #${prNumber} has been successfully merged! 🎉
+
+              **Metrics:**
+              - 📈 Lines Added: ${linesAdded}
+              - 📉 Lines Deleted: ${linesDeleted}
+              - 🕒 Time Open: ${durationString}
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
