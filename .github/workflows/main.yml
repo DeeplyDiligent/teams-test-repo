@@ -14,15 +14,15 @@ jobs:
       - name: Get PR Details
         id: pr_details
         run: |
-          echo "pr_number=$(jq -r '.number' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
-          echo "created_at=$(jq -r '.created_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
-          echo "merged_at=$(jq -r '.merged_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "pr_number=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.number')" >> $GITHUB_ENV
+          echo "created_at=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.created_at')" >> $GITHUB_ENV
+          echo "merged_at=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.merged_at')" >> $GITHUB_ENV
 
       - name: Calculate Metrics
         id: metrics
         run: |
-          lines_added=$(jq -r '.additions' <<< "${{ github.event.pull_request }}")
-          lines_deleted=$(jq -r '.deletions' <<< "${{ github.event.pull_request }}")
+          lines_added=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.additions')
+          lines_deleted=$(echo '${{ toJSON(github.event.pull_request) }}' | jq -r '.deletions')
           duration=$(( ($(date -d "${{ env.merged_at }}" +%s) - $(date -d "${{ env.created_at }}" +%s)) / 3600 ))
           days=$(( duration / 24 ))
           hours=$(( duration % 24 ))
@@ -34,8 +34,6 @@ jobs:
       - name: Get Comments and Reviewers
         id: comment_review_data
         uses: actions/github-script@v6
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const prNumber = parseInt(process.env.pr_number);
@@ -67,8 +65,9 @@ jobs:
             core.setOutput('unique_commenters', uniqueCommenters.join(', '));
             core.setOutput('last_five_comments', lastFiveComments.join(' | '));
             core.setOutput('reviewers', reviewers.join(', '));
-          
-            
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Post Comment
         uses: actions/github-script@v6
         with:
