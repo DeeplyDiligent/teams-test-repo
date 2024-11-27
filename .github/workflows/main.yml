@@ -14,9 +14,9 @@ jobs:
       - name: Get PR Details
         id: pr_details
         run: |
-          echo "pr_number=$(jq -r '.number' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
-          echo "created_at=$(jq -r '.created_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
-          echo "merged_at=$(jq -r '.merged_at' <<< "${{ github.event.pull_request }}")" >> $GITHUB_ENV
+          echo "pr_number=$(jq -r '.number' <<< "${{ toJSON(github.event.pull_request) }}")" >> $GITHUB_ENV
+          echo "created_at=$(jq -r '.created_at' <<< "${{ toJSON(github.event.pull_request) }}")" >> $GITHUB_ENV
+          echo "merged_at=$(jq -r '.merged_at' <<< "${{ toJSON(github.event.pull_request) }}")" >> $GITHUB_ENV
 
       - name: Calculate Metrics
         id: metrics
