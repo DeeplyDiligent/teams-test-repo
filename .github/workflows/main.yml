@@ -37,14 +37,12 @@ jobs:
         with:
           script: |
             const prNumber = parseInt(process.env.pr_number);
-            console.log(prNumber)
             // Fetch comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
             });
-            console.log(comments)
 
             // Fetch reviewers
             const reviews = await github.rest.pulls.listReviews({
@@ -93,8 +91,7 @@ jobs:
               - 📉 Lines Deleted: ${linesDeleted}
               - 🕒 Time Open: ${durationString}
               - 💬 Total Comments: ${commentCount}
-              - 🗣️ Commenters: ${uniqueCommenters}
-              - 📝 Last 5 Comments: ${lastFiveComments}
+              - 🗣️ Commenter (if any): ${uniqueCommenters}
               - 👀 Reviewers: ${reviewers}
             `;
 
