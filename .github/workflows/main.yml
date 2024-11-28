@@ -44,6 +44,8 @@ jobs:
               issue_number: prNumber,
             });
 
+            console.log(comments)
+
             // Fetch reviewers
             const reviews = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
