@@ -1,0 +1,28 @@
+name: Deploy Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-to-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Deploying to Development
+        run: echo "Deploying to Development..."
+
+  deploy-to-prod:
+    name: Deploy to Production
+    needs: deploy-to-dev
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Deploying to Production
+        run: echo "Deploying to Production..."
