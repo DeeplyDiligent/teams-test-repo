@@ -62,7 +62,7 @@ jobs:
             // Get reviewers
             const reviewers = [...new Set(reviews.data.map(review => review.user.login))];
 
-            core.setOutput('comment_count', comments.data.length.toString());
+            core.setOutput('comment_count', comments.data.length);
             core.setOutput('unique_commenters', uniqueCommenters.join(', '));
             core.setOutput('last_five_comments', lastFiveComments.join(' | '));
             core.setOutput('reviewers', reviewers.join(', '));
@@ -76,10 +76,10 @@ jobs:
             const linesDeleted = process.env.lines_deleted;
             const days = process.env.days;
             const hours = process.env.hours;
-             const commentCount = '${{ steps.comment_review_data.outputs.comment_count }}';
-            const uniqueCommenters = '${{ steps.comment_review_data.outputs.unique_commenters }}';
-            const lastFiveComments = '${{ steps.comment_review_data.outputs.last_five_comments }}';
-            const reviewers = '${{ steps.comment_review_data.outputs.reviewers }}';
+            const commentCount = core.getInput('comment_count');
+            const uniqueCommenters = core.getInput('unique_commenters');
+            const lastFiveComments = core.getInput('last_five_comments');
+            const reviewers = core.getInput('reviewers');
 
             const durationString = days > 0 
               ? `${days} day(s) and ${hours} hour(s)` 
